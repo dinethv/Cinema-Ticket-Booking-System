@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useCinema } from "../context/CinemaContext";
 import { api } from "../utils/api";
 
 export default function BookingPage() {
     const { showId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { shows, refreshAll, setError } = useCinema();
 
     const [selectedSeats, setSelectedSeats] = useState([]);
@@ -16,6 +17,8 @@ export default function BookingPage() {
     const [promoResult, setPromoResult] = useState(null);
     const [validatingPromo, setValidatingPromo] = useState(false);
     const [processing, setProcessing] = useState(false);
+
+    // Reserved for future: allow returning from Payment page with pre-filled info.
 
     // Find show
     const show = useMemo(() => shows.find(s => s._id === showId), [shows, showId]);
@@ -67,23 +70,23 @@ export default function BookingPage() {
     async function handleBooking(e) {
         e.preventDefault();
         if (selectedSeats.length === 0) return alert("Please select at least one seat");
+        if (!String(customerName || "").trim()) return alert("Please enter your name");
+        if (!String(mobileNumber || "").trim()) return alert("Please enter mobile number");
+        if (!String(nicNumber || "").trim()) return alert("Please enter NIC number");
 
         setProcessing(true);
         try {
-            await api("/bookings", {
-                method: "POST",
-                body: JSON.stringify({
-                    showId,
+            // No API call here. Payment happens on /payment/:showId.
+            navigate(`/payment/${showId}`, {
+                state: {
+                    selectedSeats,
                     customerName,
                     mobileNumber,
                     nicNumber,
                     promoCode: promoResult?.code || "",
-                    seats: selectedSeats
-                })
+                    discountAmount: promoResult?.discountAmount || 0
+                }
             });
-            await refreshAll();
-            alert("Booking confirmed!");
-            navigate("/bookings");
         } catch (err) {
             setError(err.message);
         } finally {
@@ -235,7 +238,7 @@ export default function BookingPage() {
                             ) : null}
                         </div>
                         <button type="submit" className="btn" style={{ width: '100%' }} disabled={processing || selectedSeats.length === 0}>
-                            {processing ? "Processing..." : "Confirm Booking"}
+                            {processing ? "Processing..." : "Proceed to Payment"}
                         </button>
                     </form>
                 </section>

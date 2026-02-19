@@ -56,7 +56,16 @@ const bookingSchema = new mongoose.Schema(
     promoCode: { type: String, default: "" },
     discountAmount: { type: Number, default: 0, min: 0 },
     seats: { type: [Number], required: true },
-    totalAmount: { type: Number, required: true, min: 0 }
+    totalAmount: { type: Number, required: true, min: 0 },
+    payment: {
+      status: { type: String, enum: ["paid"], default: "paid" },
+      method: { type: String, enum: ["card"], required: true, default: "card" },
+      cardBrand: { type: String, default: "" },
+      cardLast4: { type: String, required: true },
+      reference: { type: String, required: true },
+      paidAmount: { type: Number, required: true, min: 0 },
+      paidAt: { type: Date, default: Date.now }
+    }
   },
   { timestamps: true }
 );
@@ -506,12 +515,21 @@ app.post("/bookings", requireAuth, async (req, res) => {
     if (!req.user.userId) {
       return res.status(403).json({ error: "Only customer accounts can create bookings" });
     }
-    const { showId, customerName, mobileNumber, nicNumber, seats, promoCode } = req.body;
+    const { showId, customerName, mobileNumber, nicNumber, seats, promoCode, payment } = req.body;
 
     if (!showId || !customerName || !mobileNumber || !nicNumber || !Array.isArray(seats) || seats.length === 0) {
       return res
         .status(400)
         .json({ error: "showId, customerName, mobileNumber, nicNumber, and seats are required" });
+    }
+    if (!payment || payment.method !== "card") {
+      return res.status(400).json({ error: "Card payment is required" });
+    }
+    if (!payment.cardLast4 || !/^[0-9]{4}$/.test(String(payment.cardLast4))) {
+      return res.status(400).json({ error: "Invalid cardLast4" });
+    }
+    if (!payment.reference || String(payment.reference).trim().length < 6) {
+      return res.status(400).json({ error: "Invalid payment reference" });
     }
 
     const normalizedMobile = String(mobileNumber).trim();
@@ -576,7 +594,16 @@ app.post("/bookings", requireAuth, async (req, res) => {
       promoCode: normalizedPromo,
       discountAmount,
       seats,
-      totalAmount: Number((baseAmount - discountAmount).toFixed(2))
+      totalAmount: Number((baseAmount - discountAmount).toFixed(2)),
+      payment: {
+        status: "paid",
+        method: "card",
+        cardBrand: String(payment.cardBrand || "").trim(),
+        cardLast4: String(payment.cardLast4),
+        reference: String(payment.reference).trim(),
+        paidAmount: Number((baseAmount - discountAmount).toFixed(2)),
+        paidAt: new Date()
+      }
     });
 
     return res.status(201).json(booking);

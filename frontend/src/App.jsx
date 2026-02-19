@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import AdminPage from "./pages/AdminPage";
 import BookingPage from "./pages/BookingPage";
+import PaymentPage from "./pages/PaymentPage";
 import UserBookingsPage from "./pages/UserBookingsPage";
 import MovieDetailsPage from "./pages/MovieDetailsPage";
 import LoginPage from "./pages/LoginPage";
@@ -48,6 +49,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <BookingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment/:showId"
+                element={
+                  <ProtectedRoute>
+                    <PaymentPage />
                   </ProtectedRoute>
                 }
               />
