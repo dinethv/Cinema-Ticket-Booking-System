@@ -24,6 +24,30 @@ Full-stack cinema ticket booking application.
 - Node.js 18+ and npm
 - Docker Desktop (for containerized run)
 
+## Environment Setup
+
+Create a local env file from template:
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Update these values before sharing or deploying:
+
+- `JWT_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+
+Note:
+- `.env` is used by Docker Compose variable substitution.
+- If you run backend directly with `npm start`, set required environment variables in your shell.
+
 ## Run with Docker (Recommended)
 
 From the project root:
@@ -74,13 +98,16 @@ npm run dev
 - Backend API: `http://localhost:8000`
 - MongoDB: `mongodb://localhost:27017`
 
-## Default Admin Credentials
-
-- Admin page: `http://localhost:5173/admin`
-- Email: `admin@cinema.local`
-- Password: `admin123`
-
 ## Notes
 
 - Uploaded files are stored in `backend/uploads` and served from `/uploads/...`.
 - OTP shown in auth flows is for development/demo behavior.
+- Payment flow is a demo implementation and does not process real transactions.
+- QR ticket image generation currently uses `https://api.qrserver.com`.
+
+## Public Repo Checklist
+
+- Never commit real credentials, API keys, or production connection strings.
+- Rotate secrets if they were ever committed in history.
+- Keep `.env` private and commit only `.env.example`.
+- Replace demo admin credentials and `JWT_SECRET` for any real deployment.

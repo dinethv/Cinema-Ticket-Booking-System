@@ -4,7 +4,7 @@ services:
       context: ./frontend
     container_name: cinema-frontend
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     ports:
       - "5173:5173"
     depends_on:
@@ -16,11 +16,11 @@ services:
       context: ./backend
     container_name: cinema-api
     environment:
-      PORT: 8000
-      MONGODB_URI: mongodb://mongo:27017/cinema
-      JWT_SECRET: super-secret-change-this
-      ADMIN_EMAIL: admin@cinema.local
-      ADMIN_PASSWORD: admin123
+      PORT: ${PORT:-8000}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/cinema}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@cinema.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-before-prod}
     ports:
       - "8000:8000"
     volumes:
