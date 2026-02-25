@@ -65,6 +65,11 @@ const bookingSchema = new mongoose.Schema(
       reference: { type: String, required: true },
       paidAmount: { type: Number, required: true, min: 0 },
       paidAt: { type: Date, default: Date.now }
+    },
+    entry: {
+      checkedIn: { type: Boolean, default: false },
+      checkedInAt: { type: Date, default: null },
+      checkedInBy: { type: String, default: "" }
     }
   },
   { timestamps: true }
@@ -632,6 +637,101 @@ app.get("/admin/bookings", requireAuth, requireAdmin, async (_req, res) => {
     .populate({ path: "userId", select: "fullName email" })
     .sort({ createdAt: -1 });
   return res.json(bookings);
+});
+
+app.post("/admin/bookings/verify-entry", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { qrPayload } = req.body;
+    if (!qrPayload || typeof qrPayload !== "string") {
+      return res.status(400).json({ error: "qrPayload is required" });
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(qrPayload);
+    } catch (_error) {
+      return res.status(400).json({ error: "Invalid QR payload format" });
+    }
+
+    if (parsed.type !== "cinema-entry-pass") {
+      return res.status(400).json({ error: "Unsupported QR payload type" });
+    }
+
+    const bookingId = String(parsed.bookingId || "").trim();
+    const paymentReference = String(parsed.paymentReference || "").trim();
+    const showId = String(parsed.showId || "").trim();
+    if (!bookingId || !paymentReference || !showId) {
+      return res.status(400).json({ error: "QR payload is missing required fields" });
+    }
+
+    const booking = await Booking.findById(bookingId)
+      .populate({
+        path: "showId",
+        populate: { path: "movieId" }
+      })
+      .populate({ path: "userId", select: "fullName email" });
+
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found for this QR code" });
+    }
+    if (!booking.showId) {
+      return res.status(400).json({ error: "Booking is missing show information" });
+    }
+    if (String(booking.showId._id) !== showId) {
+      return res.status(400).json({ error: "Show mismatch for this ticket" });
+    }
+    if (String(booking.payment?.reference || "") !== paymentReference) {
+      return res.status(400).json({ error: "Payment reference mismatch for this ticket" });
+    }
+    if (booking.payment?.status !== "paid") {
+      return res.status(400).json({ error: "Ticket is not paid" });
+    }
+
+    if (booking.entry?.checkedIn) {
+      return res.json({
+        valid: false,
+        alreadyUsed: true,
+        message: "Ticket has already been used for entry",
+        booking: {
+          id: String(booking._id),
+          customerName: booking.customerName,
+          mobileNumber: booking.mobileNumber,
+          movieTitle: booking.showId?.movieId?.title || "",
+          hallName: booking.showId?.hallName || "",
+          showTime: booking.showId?.startTime || null,
+          seats: booking.seats || [],
+          paymentReference: booking.payment?.reference || "",
+          checkedInAt: booking.entry?.checkedInAt || null
+        }
+      });
+    }
+
+    booking.entry = {
+      checkedIn: true,
+      checkedInAt: new Date(),
+      checkedInBy: String(req.user.email || "admin")
+    };
+    await booking.save();
+
+    return res.json({
+      valid: true,
+      alreadyUsed: false,
+      message: "Entry approved. Ticket marked as used.",
+      booking: {
+        id: String(booking._id),
+        customerName: booking.customerName,
+        mobileNumber: booking.mobileNumber,
+        movieTitle: booking.showId?.movieId?.title || "",
+        hallName: booking.showId?.hallName || "",
+        showTime: booking.showId?.startTime || null,
+        seats: booking.seats || [],
+        paymentReference: booking.payment?.reference || "",
+        checkedInAt: booking.entry?.checkedInAt || null
+      }
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
 });
 
 app.delete("/bookings/:id", requireAuth, async (req, res) => {

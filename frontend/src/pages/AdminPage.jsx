@@ -63,7 +63,8 @@ export default function AdminPage() {
     { key: "add-movie", label: "Add New Movie", icon: <PlusCircle size={16} /> },
     { key: "edit-movie", label: "Edit or Delete Movie", icon: <Film size={16} /> },
     { key: "schedule-show", label: "Schedule Show", icon: <Calendar size={16} /> },
-    { key: "bookings", label: "Customer Bookings", icon: <Users size={16} /> }
+    { key: "bookings", label: "Customer Bookings", icon: <Users size={16} /> },
+    { key: "entry-check", label: "Entry Verification", icon: <Search size={16} /> }
   ];
 
   return (
@@ -155,6 +156,7 @@ export default function AdminPage() {
             </>
           ) : null}
           {activePanel === "bookings" ? <AdminBookingsSection /> : null}
+          {activePanel === "entry-check" ? <EntryVerificationSection /> : null}
         </section>
       </div>
     </div>
@@ -857,6 +859,130 @@ function PromoCodeSection() {
           ))}
         </div>
       )}
+    </section>
+  );
+}
+
+function EntryVerificationSection() {
+  const { setError } = useCinema();
+  const [qrPayload, setQrPayload] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [result, setResult] = useState(null);
+  const [formError, setFormError] = useState("");
+
+  async function verifyEntry(event) {
+    event.preventDefault();
+    const payload = qrPayload.trim();
+    setFormError("");
+    setResult(null);
+    if (!payload) {
+      setFormError("Paste scanned QR payload first.");
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const data = await api("/admin/bookings/verify-entry", {
+        method: "POST",
+        body: JSON.stringify({ qrPayload: payload })
+      });
+      setResult(data);
+    } catch (err) {
+      setFormError(err.message);
+      setError(err.message);
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  const booking = result?.booking;
+  const statusColor = result?.valid ? "var(--color-success)" : "var(--color-danger)";
+
+  return (
+    <section className="card">
+      <h2 style={{ marginTop: 0 }}>Entry Verification</h2>
+      <p style={{ color: "var(--color-text-muted)", marginTop: 0 }}>
+        Paste the scanned QR payload to validate the ticket and mark entry.
+      </p>
+
+      <form onSubmit={verifyEntry} style={{ display: "grid", gap: "0.8rem" }}>
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label>Scanned QR Payload</label>
+          <textarea
+            rows={8}
+            placeholder='{"type":"cinema-entry-pass","bookingId":"...","showId":"...","paymentReference":"..."}'
+            value={qrPayload}
+            onChange={(e) => setQrPayload(e.target.value)}
+            required
+          />
+        </div>
+        {formError ? <div className="form-alert form-alert-error">{formError}</div> : null}
+        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+          <button type="submit" className="btn" disabled={verifying}>
+            {verifying ? "Verifying..." : "Verify and Check In"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              setQrPayload("");
+              setResult(null);
+              setFormError("");
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+
+      {result ? (
+        <div
+          style={{
+            marginTop: "1rem",
+            border: `1px solid ${result.valid ? "rgba(16, 185, 129, 0.45)" : "rgba(239, 68, 68, 0.45)"}`,
+            borderRadius: "10px",
+            padding: "0.9rem",
+            background: "rgba(255, 255, 255, 0.02)"
+          }}
+        >
+          <p style={{ marginTop: 0, marginBottom: "0.7rem", color: statusColor, fontWeight: 700 }}>
+            {result.message}
+          </p>
+          {booking ? (
+            <div style={{ display: "grid", gap: "0.35rem", color: "var(--color-text-muted)" }}>
+              <p style={{ margin: 0 }}>
+                <strong>Booking Ref:</strong> {String(booking.id || "").slice(-6).toUpperCase() || "N/A"}
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Customer:</strong> {booking.customerName || "N/A"}
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Mobile:</strong> {booking.mobileNumber || "N/A"}
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Movie:</strong> {booking.movieTitle || "N/A"}
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Hall:</strong> {booking.hallName || "N/A"}
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Show Time:</strong> {booking.showTime ? new Date(booking.showTime).toLocaleString() : "N/A"}
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Seats:</strong> {(booking.seats || []).join(", ") || "N/A"}
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Payment Ref:</strong> {booking.paymentReference || "N/A"}
+              </p>
+              {booking.checkedInAt ? (
+                <p style={{ margin: 0 }}>
+                  <strong>Checked In At:</strong> {new Date(booking.checkedInAt).toLocaleString()}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

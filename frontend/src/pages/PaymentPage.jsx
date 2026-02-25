@@ -53,7 +53,6 @@ export default function PaymentPage() {
 
   function formatCardNumber(value) {
     const digits = digitsOnly(value).slice(0, 19);
-    // Basic formatting; if Amex, use 4-6-5 grouping.
     if (/^(34|37)/.test(digits)) {
       const p1 = digits.slice(0, 4);
       const p2 = digits.slice(4, 10);
@@ -138,7 +137,7 @@ export default function PaymentPage() {
       const last4 = cardDigits.slice(-4);
       const paymentRef = `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-      await api("/bookings", {
+      const booking = await api("/bookings", {
         method: "POST",
         body: JSON.stringify({
           showId,
@@ -157,7 +156,23 @@ export default function PaymentPage() {
       });
 
       await refreshAll();
-      navigate("/bookings");
+      navigate("/booking-success", {
+        state: {
+          bookingId: booking?._id,
+          showId,
+          movieTitle: movie?.title || "",
+          hallName: show?.hallName || "",
+          showTime: show?.startTime || "",
+          seats: selectedSeats,
+          customerName,
+          mobileNumber,
+          nicNumber,
+          totalAmount: payableTotal,
+          paymentReference: paymentRef,
+          cardBrand: brand,
+          cardLast4: last4
+        }
+      });
     } catch (err) {
       setFormError(err.message);
       setError(err.message);

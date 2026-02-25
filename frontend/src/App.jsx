@@ -7,12 +7,12 @@ import HomePage from "./pages/HomePage";
 import AdminPage from "./pages/AdminPage";
 import BookingPage from "./pages/BookingPage";
 import PaymentPage from "./pages/PaymentPage";
+import BookingSuccessPage from "./pages/BookingSuccessPage";
 import UserBookingsPage from "./pages/UserBookingsPage";
 import MovieDetailsPage from "./pages/MovieDetailsPage";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
-// Placeholder components for routes we define but haven't implemented yet to avoid build errors
 function Placeholder({ title }) {
   return <div style={{ padding: '2rem' }}><h1>{title}</h1><p>Coming Soon</p></div>;
 }
@@ -60,7 +60,14 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Fallback */}
+              <Route
+                path="/booking-success"
+                element={
+                  <ProtectedRoute>
+                    <BookingSuccessPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Placeholder title="404 Not Found" />} />
             </Routes>
           </Layout>

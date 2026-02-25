@@ -15,6 +15,7 @@ dist/
 frontend/dist/
 backend/dist/
 coverage/
+*.tsbuildinfo
 
 # Logs and runtime files
 *.log
@@ -26,6 +27,15 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+
+# Caches and temp files
+.cache/
+.eslintcache
+.vite/
+tmp/
+temp/
+*.tmp
+*.bak
 
 # Uploads (keep placeholder)
 backend/uploads/*

@@ -18,16 +18,13 @@ export default function BookingPage() {
     const [validatingPromo, setValidatingPromo] = useState(false);
     const [processing, setProcessing] = useState(false);
 
-    // Reserved for future: allow returning from Payment page with pre-filled info.
-
-    // Find show
     const show = useMemo(() => shows.find(s => s._id === showId), [shows, showId]);
 
     if (!show) return <div className="p-8">Show not found</div>;
 
     const movie = show.movieId;
     const bookedSeats = show.bookedSeats || [];
-    const totalSeats = show.totalSeats || 60; // fallback
+    const totalSeats = show.totalSeats || 60;
     const seats = Array.from({ length: totalSeats }, (_, i) => i + 1);
 
     const toggleSeat = (seatNum) => {
@@ -76,7 +73,6 @@ export default function BookingPage() {
 
         setProcessing(true);
         try {
-            // No API call here. Payment happens on /payment/:showId.
             navigate(`/payment/${showId}`, {
                 state: {
                     selectedSeats,
@@ -135,7 +131,7 @@ export default function BookingPage() {
                                         borderRadius: '8px',
                                         border: 'none',
                                         backgroundColor: isBooked
-                                            ? '#334155' // dark slate for booked
+                                            ? '#334155'
                                             : isSelected
                                                 ? 'var(--color-primary)'
                                                 : 'var(--color-surface)',
